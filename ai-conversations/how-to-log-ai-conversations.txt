@@ -1,0 +1,33 @@
+📂 AI Conversation Folder Instructions
+
+This folder is where you save your AI interactions used during development.
+
+🗂️ What to include:
+- At least 5 significant AI conversations
+- Each as a separate .txt file (e.g. conversation1.txt, conversation2.txt, etc.)
+- Each file should include:
+   - A short header at the top:
+     - Tool used (e.g. ChatGPT, Claude, Copilot, etc.)
+     - Date of the conversation
+
+💬 Conversation Example Format:
+
+----------------------------------
+Tool: ChatGPT
+Date: 2025-04-15
+----------------------------------
+
+Me: How do I parse temperature from this weather JSON?
+AI: You can use `weather["current_condition"][0]["temp_C"]` to get the temperature.
+
+Me: What if it’s missing?
+AI: Add error handling using `try/except`...
+
+(continue until the conversation ends)
+
+📌 No special formatting required.
+Just copy the entire conversation text and paste it here.
+
+⚠️ Warning:
+Use the `.txt` format, **not screenshots or PDFs**. AI logs should be searchable and lightweight.
+
