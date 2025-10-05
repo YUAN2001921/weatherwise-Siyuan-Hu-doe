@@ -61,6 +61,7 @@ refresh_demo("Perth weather today", times=2, interval_s=10)
 ```
 1️⃣INPUT：
 🎯 Concept Exploration Prompts
+
 •	ME: Why does parse_weather_question() output exactly location, days, and units?
 
 AI: Because these three are the minimum required elements for any weather query: where, when, and in what measurement system.
@@ -93,6 +94,7 @@ AI: To prevent mismatches and ensure consistent downstream logic.
 AI: Use a loop with numbered options and a dict dispatch for actions.
 
 🔍 Debugging Prompts
+
 •	ME: Why does int(input()) sometimes throw an error?
 
 AI: Because the user entered a non-numeric string.
@@ -660,6 +662,7 @@ def paginate(seq: list, page_size: int):
 def process_pages(items: list, page_size: int = 1000):
     for page in paginate(items, page_size):
         handle_page(page)  # define your own handler
+
 
 
 
