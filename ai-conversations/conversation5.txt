@@ -1,0 +1,262 @@
+----------------------------------
+Tool: Cursor
+Date: 2025-09-26
+----------------------------------
+
+
+                                                                                                                                                               Part5： Main Application Logic
+
+ME: 目前的代码只能回答温度问题，无法处理湿度、风力、降水等其他天气属性。希望能让它支持更多类型的天气问题。[The current code can only answer temperature-related questions and cannot handle other weather attributes such as humidity, wind, and precipitation. I hope it can support more types of weather-related questions.]
+
+def generate_weather_response(parsed_question, weather_data):
+    """
+    Generate a natural language response to a weather question.
+    """
+    # Only handles temperature, ignores other attributes and question types
+    if not weather_data:
+        return "No weather data available."
+    if parsed_question.get('weather_attribute') == 'temperature':
+        temp = weather_data.get('temperature')
+        if temp:
+            return f"Temperature is {temp}."
+        else:
+            return "Temperature data not found."
+    return "Sorry, I can't answer that question."
+
+AI: 你可以根据 `weather_attribute` 字段分别处理 temperature、humidity、wind、precipitation 等类型。[You can handle types such as temperature, humidity, wind, and precipitation separately based on the `weather_attribute` field.]
+
+def generate_weather_response(parsed_question, weather_data):
+    """
+    Generate a natural language response to a weather question.
+    """
+    if not weather_data:
+        return "No weather data available."
+
+    attr = parsed_question.get('weather_attribute')
+
+    if attr == 'temperature':
+        temp = weather_data.get('temperature')
+        if temp:
+            return f"Temperature is {temp}."
+        else:
+            return "Temperature data not found."
+
+    elif attr == 'humidity':
+        humidity = weather_data.get('humidity')
+        if humidity:
+            return f"Humidity is {humidity}%."
+        else:
+            return "Humidity data not found."
+
+    elif attr == 'wind':
+        wind = weather_data.get('wind')
+        if wind:
+            return f"Wind: {wind}."
+        else:
+            return "Wind data not found."
+
+    elif attr == 'precipitation':
+        precip = weather_data.get('precipitation')
+        if precip:
+            return f"Precipitation: {precip}."
+        else:
+            return "Precipitation data not found."
+
+    return "Sorry, I can't answer that question."
+
+ME:现在代码没有区分“现在”还是“明天”等时间段，建议根据 time_period 字段分别从 current 或 forecast 里取数据，并优化数据结构的访问方式。[Currently, the code does not distinguish between 'now' or 'tomorrow' and other time periods. It is recommended to fetch data from 'current' or 'forecast' based on the 'time_period' field and optimize the way the data structure is accessed.]
+
+AI: 你可以用 `time_period` 字段判断是 'now' 还是 'tomorrow'，分别从 `current` 或 `forecast[0]` 里取数据。[You can use the `time_period` field to determine whether it is 'now' or 'tomorrow', and then retrieve data from `current` or `forecast[0]` accordingly.]
+def generate_weather_response(parsed_question, weather_data):
+    """
+    Generate a natural language response to a weather question.
+    """
+    if not weather_data:
+        return "No weather data available."
+
+    attr = parsed_question.get('weather_attribute')
+    time_period = parsed_question.get('time_period', 'now')
+
+    if time_period == 'now':
+        data = weather_data.get('current', {})
+    elif time_period == 'tomorrow' and weather_data.get('forecast'):
+        data = weather_data['forecast'][0]
+    else:
+        data = {}
+
+    if attr == 'temperature':
+        temp = data.get('temperature')
+        if isinstance(temp, dict):
+            temp = temp.get('current')
+        if temp:
+            return f"Temperature is {temp}."
+        else:
+            return "Temperature data not found."
+
+    elif attr == 'humidity':
+        humidity = data.get('humidity')
+        if humidity:
+            return f"Humidity is {humidity}%."
+        else:
+            return "Humidity data not found."
+
+    elif attr == 'wind':
+        wind = data.get('wind')
+        if wind:
+            return f"Wind: {wind}."
+        else:
+            return "Wind data not found."
+
+    elif attr == 'precipitation':
+        precip = data.get('precipitation')
+        if precip:
+            return f"Precipitation: {precip}."
+        else:
+            return "Precipitation data not found."
+
+    return "Sorry, I can't answer that question."
+
+ME: 目前回答内容比较死板，建议根据 question_type 字段（如 will/how/should/what）设计不同的英文回答模板，让回答更自然、更贴合问题语境。[Currently, the responses are quite rigid. It is recommended to design different English response templates based on the question_type field (such as will/how/should/what) to make the answers more natural and better suited to the context of the question.]
+
+AI: 可以根据 `question_type` 字段，分别设计不同的回答模板，比如 'will' 用“Will it rain...”，'should' 用“Should I bring...”，'how' 用“How hot is it...”，'what' 用“What's the temperature...”。[You can design different answer templates according to the `question_type` field. For example, use 'Will it rain...' for 'will', 'Should I bring...' for 'should', 'How hot is it...' for 'how', and 'What's the temperature...' for 'what'.]
+def generate_weather_response(parsed_question, weather_data):
+    """
+    Generate a natural language response to a weather question.
+
+    Args:
+        parsed_question (dict): Parsed question data
+        weather_data (dict): Weather data
+
+    Returns:
+        str: Natural language response
+    """
+    if not weather_data or not parsed_question:
+        return "I'm sorry, I don't have the weather information needed to answer your question."
+
+    location = parsed_question.get('location', 'the requested location')
+    time_period = parsed_question.get('time_period', 'now')
+    weather_attribute = parsed_question.get('weather_attribute', 'condition')
+    question_type = parsed_question.get('question_type', 'what')
+
+    if question_type == 'will' and weather_attribute == 'precipitation':
+        if time_period == 'tomorrow' and weather_data.get('forecast'):
+            if len(weather_data['forecast']) > 0:
+                tomorrow_data = weather_data['forecast'][0]
+                chance = float(tomorrow_data.get('precipitation', {}).get('chance', 0))
+                if chance == 0:
+                    return f"No, it will not rain tomorrow in {location}."
+                elif chance < 30:
+                    return f"It's unlikely to rain tomorrow in {location}. There's only a {chance}% chance."
+                else:
+                    return f"Yes, there's a {chance}% chance of rain tomorrow in {location}."
+
+    elif question_type == 'what' and weather_attribute == 'temperature':
+        if time_period == 'now' and weather_data.get('current'):
+            current_temp = weather_data['current'].get('temperature', {}).get('current')
+            if current_temp:
+                return f"The current temperature in {location} is {current_temp}°C."
+        elif time_period == 'today' and weather_data.get('forecast'):
+            if len(weather_data['forecast']) > 0:
+                today_data = weather_data['forecast'][0]
+                max_temp = today_data.get('max_temp')
+                min_temp = today_data.get('min_temp')
+                if max_temp and min_temp:
+                    return f"Today's temperature in {location} will range from {min_temp}°C to {max_temp}°C."
+
+    elif question_type == 'how' and weather_attribute == 'temperature':
+        if time_period == 'now' and weather_data.get('current'):
+            current_temp = float(weather_data['current'].get('temperature', {}).get('current', 0))
+            if current_temp > 25:
+                return f"It's quite warm in {location} right now at {current_temp}°C."
+            elif current_temp > 15:
+                return f"It's mild in {location} right now at {current_temp}°C."
+            else:
+                return f"It's cool in {location} right now at {current_temp}°C."
+
+    elif question_type == 'should' and weather_attribute == 'precipitation':
+        if time_period == 'tomorrow' and weather_data.get('forecast'):
+            if len(weather_data['forecast']) > 0:
+                tomorrow_data = weather_data['forecast'][0]
+                chance = float(tomorrow_data.get('precipitation', {}).get('chance', 0))
+                if chance > 50:
+                    return f"Yes, you should bring an umbrella to {location} tomorrow. There's a {chance}% chance of rain."
+                else:
+                    return f"No need for an umbrella in {location} tomorrow. There's only a {chance}% chance of rain."
+
+    if weather_data.get('current'):
+        current_temp = weather_data['current'].get('temperature', {}).get('current')
+        condition = weather_data['current'].get('condition')
+        response = f"Here's the current weather information for {location}: "
+        if current_temp:
+            response += f"Temperature is {current_temp}°C"
+        if condition:
+            response += f", and the condition is {condition}"
+        response += "."
+        return response
+
+    return f"I can provide weather information for {location}, but I need more specific details about what you're asking."
+
+ME: 给我提供测试代码。[Provide me with test code.]
+
+AI: 你可以用如下代码进行测试：[You can test it using the following code.]
+parsed1 = {
+    'location': 'London',
+    'time_period': 'tomorrow',
+    'weather_attribute': 'precipitation',
+    'question_type': 'will'
+}
+weather_data1 = {
+    'forecast': [
+        {'precipitation': {'chance': 60}}
+    ]
+}
+print(generate_weather_response(parsed1, weather_data1))  # Yes, there's a 60% chance of rain tomorrow in London.
+
+parsed2 = {
+    'location': 'Paris',
+    'time_period': 'now',
+    'weather_attribute': 'temperature',
+    'question_type': 'what'
+}
+weather_data2 = {
+    'current': {'temperature': {'current': 18}}
+}
+print(generate_weather_response(parsed2, weather_data2))  # The current temperature in Paris is 18°C.
+
+parsed3 = {
+    'location': 'Tokyo',
+    'time_period': 'now',
+    'weather_attribute': 'temperature',
+    'question_type': 'how'
+}
+weather_data3 = {
+    'current': {'temperature': {'current': 28}}
+}
+print(generate_weather_response(parsed3, weather_data3))  # It's quite warm in Tokyo right now at 28°C.
+
+parsed4 = {
+    'location': 'Sydney',
+    'time_period': 'tomorrow',
+    'weather_attribute': 'precipitation',
+    'question_type': 'should'
+}
+weather_data4 = {
+    'forecast': [
+        {'precipitation': {'chance': 10}}
+    ]
+}
+print(generate_weather_response(parsed4, weather_data4))  # No need for an umbrella in Sydney tomorrow. There's only a 10% chance of rain.
+
+parsed5 = {
+    'location': 'Berlin',
+    'time_period': 'now',
+    'weather_attribute': 'condition',
+    'question_type': 'what'
+}
+weather_data5 = {
+    'current': {'temperature': {'current': 12}, 'condition': 'Cloudy'}
+}
+print(generate_weather_response(parsed5, weather_data5))  # Here's the current weather information for Berlin: Temperature is 12°C, and the condition is Cloudy.
+
+End of conversation
+

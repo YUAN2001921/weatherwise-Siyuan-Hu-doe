@@ -1,0 +1,613 @@
+----------------------------------
+Tool: ChatGPT
+Date: 2025-09-15
+----------------------------------
+                                                                                                                                        Part2: Visualisation-create_temperature_visualisation
+
+ME: The temperature plot still connects "current temperature" with forecast highs and lows. I only want the forecast trend. How should I change the function?
+
+AI: Remove any line that mixes current temperature into the forecast series. Keep only the two forecast lines (high/low). If you still want to show the current value, draw a single scatter point so it won't connect to the forecast path.
+
+ME: 这个函数我感觉有问题，不需要把现在温度和最高温度之间连线。[I feel there is a problem with this function; there is no need to draw a line between the current temperature and the highest temperature.]
+
+def create_temperature_visualisation(weather_data, output_type='display'):
+    """
+    Create visualisation of temperature data.
+
+    Args:
+        weather_data (dict): The processed weather data
+        output_type (str): Either 'display' to show in notebook or 'figure' to return the figure
+
+    Returns:
+        If output_type is 'figure', returns the matplotlib figure object
+        Otherwise, displays the visualisation in the notebook
+    """
+
+    # Check input data validity
+    if not weather_data or 'forecast' not in weather_data:
+        print("Error: Invalid weather data")
+        return None
+
+    if not weather_data['forecast']:
+        print("Error: No forecast data available")
+        return None
+
+    # Extract temperature data
+    dates = [ ]
+    max_temps = [ ]
+    min_temps = [ ]
+    current_temp = None
+
+    # Add current temperature if available
+    if 'current' in weather_data and weather_data['current']:
+        current_temp_str = weather_data['current'].get('temperature', {}).get('current')
+        if current_temp_str is not None:
+            try:
+                current_temp = float(current_temp_str)
+                # Use today as the date for current temperature
+                today = datetime.now().date()
+                dates.append(today)
+                max_temps.append(current_temp)
+                min_temps.append(current_temp)
+            except (ValueError, TypeError):
+                print("Warning: Could not parse current temperature")
+
+    # Add forecast data
+    for day_data in weather_data['forecast']:
+        try:
+            # Parse date
+            date_str = day_data.get('date', '')
+            if date_str:
+                # Assume date format is YYYY-MM-DD
+                date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+                dates.append(date_obj)
+
+                # Get temperature data (convert strings to floats)
+                max_temp_str = day_data.get('max_temp')
+                min_temp_str = day_data.get('min_temp')
+
+                if max_temp_str is not None and min_temp_str is not None:
+                    try:
+                        max_temp = float(max_temp_str)
+                        min_temp = float(min_temp_str)
+                        max_temps.append(max_temp)
+                        min_temps.append(min_temp)
+                    except (ValueError, TypeError):
+                        # Skip this day if temperature conversion fails
+                        dates.pop()
+                        continue
+                else:
+                    # Skip this day if temperature data is missing
+                    dates.pop()
+                    continue
+        except (ValueError, TypeError):
+            # Skip this day if date parsing fails
+            continue
+
+    if not dates:
+        print("Error: No valid temperature data found")
+        return None
+
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    # Plot temperature lines
+    ax.plot(dates, max_temps, 'r-o', linewidth=2, markersize=6, label='Max Temperature', alpha=0.8)
+    ax.plot(dates, min_temps, 'b-o', linewidth=2, markersize=6, label='Min Temperature', alpha=0.8)
+
+    # Fill temperature range
+    ax.fill_between(dates, min_temps, max_temps, alpha=0.3, color='gray')
+
+    # Highlight current temperature if available
+    if current_temp is not None and len(dates) > 0:
+        ax.scatter(dates[0], current_temp, color='orange', s=100, zorder=5,
+                  label=f'Current Temperature ({current_temp}°C)', marker='*')
+
+    # Set plot properties
+    ax.set_xlabel('Date', fontsize=12)
+    ax.set_ylabel('Temperature (°C)', fontsize=12)
+    ax.set_title(f'Temperature Trend for {weather_data.get("location", "Unknown Location")}',
+                fontsize=14, fontweight='bold')
+
+    # Add grid
+    ax.grid(True, alpha=0.3)
+
+    # Add legend
+    ax.legend(loc='best')
+
+    # Format x-axis dates
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+    plt.xticks(rotation=45)
+
+    # Adjust layout
+    plt.tight_layout( )
+
+    # Return or display based on output_type
+    if output_type == 'figure':
+        return fig
+    else:
+        plt.show( )
+        return None
+
+AI: 已经思考了好几秒看到了！问题在于你把“当前温度”塞进了 `dates / max_temps / min_temps` 里，然后用同一条折线 `ax.plot(...)` 去画最高/最低温度，这样会把“当前温度”这个点和第一天的预报点连成一条线。修正方法：**不要把当前温度追加到最高/最低温度序列里**。改为单独用 `scatter` 标出来即可。同时补上必要的导入、容错，并且只在有数据时才使用 `fill_between`。直接替换成下面这个版本即可：[ChatGPT: I've thought for a few seconds and I see it! The problem is that you put the 'current temperature' into `dates / max_temps / min_temps`, and then used the same line `ax.plot(...)` to plot the high/low temperatures. This will connect the 'current temperature' point with the first day's forecast point. The fix: **do not append the current temperature to the high/low temperature series**. Instead, mark it separately using `scatter`. Also, include the necessary imports and error handling, and only use `fill_between` when there is data. You can directly replace it with the version below:]
+
+from datetime import datetime
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+def create_temperature_visualisation(weather_data, output_type='display'):
+    """
+    Create visualisation of temperature data.
+
+    Args:
+        weather_data (dict): The processed weather data
+        output_type (str): Either 'display' to show in notebook or 'figure' to return the figure
+
+    Returns:
+        If output_type is 'figure', returns the matplotlib figure object
+        Otherwise, displays the visualisation in the notebook
+    """
+
+    # Check input data validity
+    if not weather_data or 'forecast' not in weather_data:
+        print("Error: Invalid weather data")
+        return None
+    if not weather_data['forecast']:
+        print("Error: No forecast data available")
+        return None
+
+    # Extract forecast temperatures
+    dates = [ ]
+    max_temps = [ ]
+    min_temps = [ ]
+
+    for day_data in weather_data['forecast']:
+        try:
+            date_str = day_data.get('date', '')
+            if not date_str:
+                continue
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+            max_temp_str = day_data.get('max_temp')
+            min_temp_str = day_data.get('min_temp')
+            if max_temp_str is None or min_temp_str is None:
+                continue
+
+            max_temp = float(max_temp_str)
+            min_temp = float(min_temp_str)
+
+            dates.append(date_obj)
+            max_temps.append(max_temp)
+            min_temps.append(min_temp)
+        except (ValueError, TypeError):
+            continue
+
+    if not dates:
+        print("Error: No valid temperature data found")
+        return None
+
+    current_temp = None
+    today = datetime.now().date()
+    if 'current' in weather_data and weather_data['current']:
+        current_temp_str = weather_data['current'].get('temperature', {}).get('current')
+        try:
+            if current_temp_str is not None:
+                current_temp = float(current_temp_str)
+        except (ValueError, TypeError):
+            print("Warning: Could not parse current temperature")
+
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    # Plot forecast lines
+    ax.plot(dates, max_temps, 'r-o', linewidth=2, markersize=6, label='Max Temperature', alpha=0.8)
+    ax.plot(dates, min_temps, 'b-o', linewidth=2, markersize=6, label='Min Temperature', alpha=0.8)
+
+    # Fill temperature range if possible
+    if len(dates) >= 1:
+        ax.fill_between(dates, min_temps, max_temps, alpha=0.3, color='gray')
+
+    # Highlight current temperature
+    if current_temp is not None:
+        ax.scatter(today, current_temp, s=100, zorder=5,
+                   label=f'Current Temperature ({current_temp}°C)', marker='*')
+
+    # Set plot properties
+    ax.set_xlabel('Date', fontsize=12)
+    ax.set_ylabel('Temperature (°C)', fontsize=12)
+    ax.set_title(f'Temperature Trend for {weather_data.get("location", "Unknown Location")}',
+                 fontsize=14, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='best')
+
+    # Format x-axis dates
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    if output_type == 'figure':
+        return fig
+    else:
+        plt.show()
+        return None
+AI: With a valid forecast list and a real current.temperature.current, the star marker appears but no line segment goes to it.If current is missing or invalid, the chart still renders the forecast band correctly.If today is outside the forecast window, the current star is pinned to the first forecast date (so the x-axis range stays tidy).
+
+ME: 我认为可以把可以把 current 标在y轴上，因为其实我不知道这个时区应该是什么，把current 标出来容易弄错。
+       [I think we can mark 'current' on the y-axis, because I actually don't know what time zone this should be, and marking 'current' makes it easy to get confused.]
+
+AI: 好的 👍。如果你不想在 x 轴（日期轴）上标 `current`，而是直接在 **y 轴上加一条水平线** 或标签，就可以完全避免“时区错位”的问题。可以这么改：[Okay 👍. If you don't want to mark `current` on the x-axis (date axis), but instead add a horizontal line or label directly on the **y-axis**, you can completely avoid the 'time zone misalignment' issue. You can modify it like this:]
+
+from datetime import datetime
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+def create_temperature_visualisation(weather_data, output_type='display'):
+    if not weather_data or 'forecast' not in weather_data:
+        print("Error: Invalid weather data")
+        return None
+    if not weather_data['forecast']:
+        print("Error: No forecast data available")
+        return None
+
+    dates, max_temps, min_temps = [], [], []
+    for day_data in weather_data['forecast']:
+        try:
+            date_str = day_data.get('date', '')
+            if not date_str:
+                continue
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+            max_temp_str = day_data.get('max_temp')
+            min_temp_str = day_data.get('min_temp')
+            if max_temp_str is None or min_temp_str is None:
+                continue
+
+            max_temp = float(max_temp_str)
+            min_temp = float(min_temp_str)
+
+            dates.append(date_obj)
+            max_temps.append(max_temp)
+            min_temps.append(min_temp)
+        except (ValueError, TypeError):
+            continue
+
+    if not dates:
+        print("Error: No valid temperature data found")
+        return None
+
+    current_temp = None
+    if 'current' in weather_data and weather_data['current']:
+        current_temp_str = weather_data['current'].get('temperature', {}).get('current')
+        try:
+            if current_temp_str is not None:
+                current_temp = float(current_temp_str)
+        except (ValueError, TypeError):
+            print("Warning: Could not parse current temperature")
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(dates, max_temps, 'r-o', linewidth=2, markersize=6, label='Max Temperature', alpha=0.8)
+    ax.plot(dates, min_temps, 'b-o', linewidth=2, markersize=6, label='Min Temperature', alpha=0.8)
+    if len(dates) >= 1:
+        ax.fill_between(dates, min_temps, max_temps, alpha=0.3, color='gray')
+
+    if current_temp is not None:
+        ax.axhline(y=current_temp, color='orange', linestyle='--', linewidth=2,
+                   label=f'Current Temperature ({current_temp}°C)')
+
+    ax.set_xlabel('Date', fontsize=12)
+    ax.set_ylabel('Temperature (°C)', fontsize=12)
+    ax.set_title(f'Temperature Trend for {weather_data.get("location", "Unknown Location")}',
+                 fontsize=14, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='best')
+
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    if output_type == 'figure':
+        return fig
+    else:
+        plt.show()
+        return None
+AI: 区别：
+-   `current` 不再作为单独点放在日期轴，而是用 `ax.axhline` 在整个图上画一条横线。
+-   图例里仍然会显示 `"Current Temperature (xx°C)"`。
+这样你无论当前数据属于哪个时区，都会只在 y 轴位置对齐，不会被误解成具体哪一天。
+要不要我帮你把 `axhline` 换成更明显的 “箭头 + 注释文字” 形式，而不仅仅是一条横线？
+[Differences:- `current` is no longer placed as a separate point on the date axis. Instead, a horizontal line is drawn across the entire plot using `ax.axhline`.- The legend will still display "Current Temperature (xx°C)".This way, no matter which time zone the current data belongs to, it will only align with the y-axis position and won't be misunderstood as a specific day.Do you want me to help you change `axhline` to a more obvious "arrow + annotation" format, rather than just a horizontal line?]
+
+ME:这个函数还有一些问题，目前柱形上会有一个黄色小框显示Precipitation chances:0%,100.0%,0.0%,0.0%。我想要移除它。
+输入数据如下。[This function still has some issues. Currently, a small yellow box appears on the bar showing 'Precipitation chances: 0%, 100.0%, 0.0%, 0.0%'. I want to remove that and put per-bar labels instead. The input data is as follows.]
+{'location': 'Tokyo',
+ 'current': {'temperature': {'current': '27', 'feels_like': '31'},
+  'condition': 'Patchy rain nearby',
+  'humidity': '88',
+  'wind': {'speed': '31', 'direction': 'SW'},
+  'precipitation': '0.0'},
+ 'forecast': [{'date': '2025-09-20',
+   'max_temp': '26',
+   'min_temp': '25',
+   'condition': 'Patchy rain nearby',
+   'precipitation': {'chance': '100', 'amount': '0.1'},
+   'wind': {'speed': '19', 'direction': 'ESE'}},
+  {'date': '2025-09-21',
+   'max_temp': '27',
+   'min_temp': '25',
+   'condition': 'Sunny',
+   'precipitation': {'chance': '0', 'amount': '0.0'},
+   'wind': {'speed': '37', 'direction': 'WSW'}},
+  {'date': '2025-09-22',
+   'max_temp': '24',
+   'min_temp': '23',
+   'condition': 'Partly Cloudy ',
+   'precipitation': {'chance': '0', 'amount': '0.0'},
+   'wind': {'speed': '40', 'direction': 'NE'}}]}def create_precipitation_visualisation(weather_data, output_type='display'): 
+    """
+    Create visualisation of precipitation data.
+
+    Args:
+        weather_data (dict): The processed weather data
+        output_type (str): Either 'display' to show in notebook or 'figure' to return the figure
+
+    Returns:
+        If output_type is 'figure', returns the matplotlib figure object
+        Otherwise, displays the visualisation in the notebook
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    from datetime import datetime
+    import numpy as np
+
+    # Check input data validity
+    if not weather_data or 'forecast' not in weather_data:
+        print("Error: Invalid weather data")
+        return None
+
+    if not weather_data['forecast']:
+        print("Error: No forecast data available")
+        return None
+
+    # Extract precipitation data
+    dates = []
+    precipitation_chances = []
+    precipitation_amounts = []
+    current_precipitation = None
+
+    # Add current precipitation if available
+    if 'current' in weather_data and weather_data['current']:
+        current_precip_str = weather_data['current'].get('precipitation')
+        if current_precip_str is not None:
+            try:
+                current_precipitation = float(current_precip_str)
+                # Use today as the date for current precipitation
+                today = datetime.now().date()
+                dates.append(today)
+                precipitation_chances.append(0)  # Current precipitation doesn't have chance data
+                precipitation_amounts.append(current_precipitation)
+            except (ValueError, TypeError):
+                print("Warning: Could not parse current precipitation")
+
+    # Add forecast data
+    for day_data in weather_data['forecast']:
+        try:
+            # Parse date
+            date_str = day_data.get('date', '')
+            if date_str:
+                # Assume date format is YYYY-MM-DD
+                date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+                dates.append(date_obj)
+
+                # Get precipitation data
+                precip_data = day_data.get('precipitation', {})
+                chance_str = precip_data.get('chance')
+                amount_str = precip_data.get('amount')
+
+                if chance_str is not None and amount_str is not None:
+                    try:
+                        chance = float(chance_str)
+                        amount = float(amount_str)
+                        precipitation_chances.append(chance)
+                        precipitation_amounts.append(amount)
+                    except (ValueError, TypeError):
+                        # Skip this day if precipitation conversion fails
+                        dates.pop()
+                        continue
+                else:
+                    # Skip this day if precipitation data is missing
+                    dates.pop()
+                    continue
+        except (ValueError, TypeError):
+            # Skip this day if date parsing fails
+            continue
+
+    if not dates:
+        print("Error: No valid precipitation data found")
+        return None
+
+    # Check if all precipitation values are zero
+    all_zero = all(amount == 0 for amount in precipitation_amounts) and current_precipitation == 0
+
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    if all_zero:
+        # Special handling for zero precipitation - show a clear "no rain" message
+        ax.bar(dates, precipitation_amounts, color='lightblue', alpha=0.7,
+               edgecolor='navy', linewidth=1)
+
+        # Add text annotation
+        ax.text(0.5, 0.7, 'No Precipitation Expected',
+                transform=ax.transAxes, fontsize=16, fontweight='bold',
+                ha='center', va='center', color='darkblue')
+        ax.text(0.5, 0.6, 'All days show 0% chance of rain',
+                transform=ax.transAxes, fontsize=12,
+                ha='center', va='center', color='gray')
+
+        # Set y-axis to show small range around zero
+        ax.set_ylim(-0.5, 2)
+
+    else:
+        # Normal precipitation visualization
+        bars = ax.bar(dates, precipitation_amounts, color='skyblue', alpha=0.7,
+                     edgecolor='navy', linewidth=1)
+
+        # Highlight current precipitation if available
+        if current_precipitation is not None and len(dates) > 0:
+            bars[0].set_color('orange')
+            bars[0].set_alpha(0.8)
+
+        # Add value labels on bars for non-zero values
+        for i, (bar, amount) in enumerate(zip(bars, precipitation_amounts)):
+            if amount > 0:  # Only show labels for non-zero precipitation
+                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1,
+                        f'{amount:.1f}mm', ha='center', va='bottom', fontsize=9)
+
+    # Set plot properties
+    ax.set_xlabel('Date', fontsize=12)
+    ax.set_ylabel('Precipitation Amount (mm)', fontsize=12)
+    ax.set_title(f'Precipitation Forecast for {weather_data.get("location", "Unknown Location")}',
+                fontsize=14, fontweight='bold')
+
+    # Add grid
+    ax.grid(True, alpha=0.3, axis='y')
+
+    # Format x-axis dates
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+    plt.xticks(rotation=45)
+
+    # Add precipitation chance information as text
+    if not all_zero:
+        chance_text = f"Precipitation Chances: " + ", ".join([f"{chance}%" for chance in precipitation_chances])
+        ax.text(0.02, 0.98, chance_text, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+
+    # Adjust layout
+    plt.tight_layout()
+
+    # Return or display based on output_type
+    if output_type == 'figure':
+        return fig
+    else:
+        plt.show()
+        return None
+
+AI: 你看到的黄色小框是这段代码加的：
+chance_text = "Precipitation Chances: " + ", ".join([f"{chance}%" for chance in precipitation_chances])
+ax.text(..., bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+而且你把“当前降水”也塞进了 `precipitation_chances`（强行放了个 0），所以才会出现 `0%,100.0%,0.0%,0.0%`。  
+下面给一版改好的函数：
+-   不再把 **current** 塞进柱形数据和 `precipitation_chances`（避免多出来的 0%）。
+-   用一条 **横向虚线** 标出当前降水（避免时区/日期对齐问题）。
+-   **去掉**右上角黄色信息框，改为在每个柱子上方标注“`X.Xmm | YY%`”，更直观。
+-   修复 `all_zero` 在 `current_precipitation is None` 时误判的问题。
+[chance_text = "Precipitation Chances: " + ", ".join([f"{chance}%" for chance in precipitation_chances])ax.text(..., bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))Moreover, you also stuffed "current precipitation" into `precipitation_chances` (forcibly putting a 0), which is why `0%,100.0%,0.0%,0.0%` appeared.Below is a revised version of the function:- No longer insert **current** into the bar data and `precipitation_chances` (to avoid extra 0%).- Use a **horizontal dashed line** to indicate current precipitation (to avoid time zone/date alignment issues).- **Remove** the yellow info box in the top right corner, instead label each bar on top with "`X.Xmm | YY%`" for clearer visualization.- Fix the issue where `all_zero` is misjudged when `current_precipitation is None`.]
+def create_precipitation_visualisation(weather_data, output_type='display'):
+    """
+    Create visualisation of precipitation data.
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    from datetime import datetime
+    import numpy as np
+
+    # ---- validate ----
+    if not weather_data or 'forecast' not in weather_data:
+        print("Error: Invalid weather data")
+        return None
+    if not weather_data['forecast']:
+        print("Error: No forecast data available")
+        return None
+
+    # ---- extract forecast only ----
+    dates, precip_amounts, precip_chances = [], [], []
+    for day in weather_data['forecast']:
+        try:
+            d = day.get('date')
+            if not d:
+                continue
+            date_obj = datetime.strptime(d, '%Y-%m-%d').date()
+
+            p = day.get('precipitation', {}) or {}
+            amt_str, ch_str = p.get('amount'), p.get('chance')
+            if amt_str is None or ch_str is None:
+                continue
+
+            amt = float(amt_str)
+            ch = float(ch_str)
+
+            dates.append(date_obj)
+            precip_amounts.append(amt)
+            precip_chances.append(ch)
+        except (ValueError, TypeError):
+            continue
+
+    if not dates:
+        print("Error: No valid precipitation data found")
+        return None
+
+    current_precipitation = None
+    cur_str = (weather_data.get('current') or {}).get('precipitation')
+    try:
+        if cur_str is not None:
+            current_precipitation = float(cur_str)
+    except (ValueError, TypeError):
+        pass
+
+    # ---- zero check----
+    all_zero = all(a == 0 for a in precip_amounts)
+
+    # ---- plot ----
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    if all_zero:
+        bars = ax.bar(dates, precip_amounts, edgecolor='navy', linewidth=1, alpha=0.7)
+        ax.text(0.5, 0.65, 'No Precipitation Expected',
+                transform=ax.transAxes, fontsize=16, fontweight='bold',
+                ha='center', va='center', color='darkblue')
+        ax.text(0.5, 0.56, 'All forecast days show 0% chance of rain',
+                transform=ax.transAxes, fontsize=12, ha='center', va='center', color='gray')
+        ax.set_ylim(-0.5, 2)
+    else:
+        bars = ax.bar(dates, precip_amounts, edgecolor='navy', linewidth=1, alpha=0.7)
+
+        for bar, amt, ch in zip(bars, precip_amounts, precip_chances):
+            if amt > 0 or ch > 0:
+                ax.text(bar.get_x() + bar.get_width() / 2.0,
+                        bar.get_height() + max(0.03, 0.05 * (ax.get_ylim()[1] - ax.get_ylim()[0])),
+                        f'{amt:.1f}mm | {ch:.0f}%',
+                        ha='center', va='bottom', fontsize=9)
+
+    if current_precipitation is not None:
+        ax.axhline(y=current_precipitation, linestyle='--', linewidth=2,
+                   label=f'Current precip: {current_precipitation:.1f}mm')
+
+    # ---- axes & labels ----
+    ax.set_xlabel('Date', fontsize=12)
+    ax.set_ylabel('Precipitation Amount (mm)', fontsize=12)
+    ax.set_title(f'Precipitation Forecast for {weather_data.get("location", "Unknown Location")}',
+                 fontsize=14, fontweight='bold')
+    ax.grid(True, alpha=0.3, axis='y')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+    plt.xticks(rotation=45)
+
+    if current_precipitation is not None:
+        ax.legend(loc='best')
+
+    plt.tight_layout()
+
+    if output_type == 'figure':
+        return fig
+    else:
+        plt.show()
+        return None
+
+End of conversaion
+
+
+
