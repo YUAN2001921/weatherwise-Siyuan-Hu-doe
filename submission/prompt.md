@@ -62,25 +62,43 @@ refresh_demo("Perth weather today", times=2, interval_s=10)
 1️⃣INPUT：
 🎯 Concept Exploration Prompts
 •	ME: Why does parse_weather_question() output exactly location, days, and units?
+
 AI: Because these three are the minimum required elements for any weather query: where, when, and in what measurement system.
+
 •	ME: If the user only types “Perth tomorrow”, what should I do with missing units?
+
 AI: Provide defaults (°C for temperature, km/h for wind) and mention that assumption in the output.
+
 •	ME: When CLI args, notebook widgets, and defaults coexist, what should the precedence be?
+
 AI:Precedence should be CLI > Widgets > Defaults.
+
 •	ME: What are different ways to get user input in Python?
+
 ```python
+
 AI: input() function, CLI arguments (argparse), notebook widgets (ipywidgets), file input (CSV/JSON).
+
 🛠 Implementation Prompts
 •	ME: How do I use collect_inputs_once() to gather missing fields in one shot instead of asking repeatedly?
+
 AI: Pass existing partial input, check which fields are missing, prompt once for all, then return a completed dict.
+
 •	ME: Why does normalize_units() need to normalize case and aliases (C, Celsius, °C)?
+
 AI: To prevent mismatches and ensure consistent downstream logic.
+
 •	ME: How do I create a menu system for user input options?
+
 AI: Use a loop with numbered options and a dict dispatch for actions.
+
 🔍 Debugging Prompts
 •	ME: Why does int(input()) sometimes throw an error?
+
 AI: Because the user entered a non-numeric string.
+
 •	ME: Why didn’t parse_weather_question() recognize “Perth,AU”?
+
 AI: Likely due to missing regex or parser rules for the “comma” format.
 ```
 •	ME: How do I keep asking until the user inputs valid data?
@@ -480,4 +498,5 @@ def paginate(seq: list, page_size: int):
 def process_pages(items: list, page_size: int = 1000):
     for page in paginate(items, page_size):
         handle_page(page)  # define your own handler
+
 
