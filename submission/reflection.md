@@ -8,12 +8,12 @@ In this project, I mainly used ChatGPT (GPT-5) and Cursor as my AI development a
 ## Prompting Techniques
 Which intentional prompting strategies did you apply?
 
-I applied step-by-step prompting and refinement prompting techniques. At the beginning, I asked AI to help me outline what knowledge points and Python functions were needed for each section of the project, and to restate the problem in simpler terms to clarify my understanding. Later, I used more specific prompts such as “improve this function but keep the structure unchanged” or gave my own modification suggestions for iterative refinement. I frequently used bilingual prompts in both English and Chinese to ensure conceptual alignment and to minimise misunderstanding between technical and linguistic expressions.
+I applied step-by-step prompting and refinement prompting techniques. At the beginning, I asked ChatGPT and Cursor to help me outline what knowledge points and Python functions were needed for each section of the project, and to restate the problem in simpler terms to clarify my understanding. Later, I used more specific prompts such as improve this function but keep the structure unchanged or gave my own modification suggestions for iterative refinement. I frequently used bilingual prompts in both English and Chinese to ensure conceptual alignment and to minimise misunderstanding between technical and linguistic expressions.
 
 ## What Worked Well?
 Describe one thing you’re proud of.
 
-What I am most proud of is that nearly a month of effort allowed me to successfully create a complete interactive weather dashboard by applying what I have learned and using AI. It integrates data acquisition, natural language processing, and visualization features. The combination of parse_weather_question() and generate_weather_response() enables the system to understand natural language questions and generate context-aware answers. The interactive design with ipywidgets makes the dashboard more lively and user-friendly.
+What I am most proud of is that nearly a month of effort allowed me to successfully create a complete interactive weather dashboard by applying what I have learned and using AI. USing AI and in combination with the knowledge I have learned, it integrates data acquisition, natural language processing, and visualization features. The combination of parse_weather_question() and generate_weather_response() enables the system to understand natural language questions and generate context-aware answers. The interactive design with ipywidgets makes the dashboard more lively and user-friendly.
 
 ## What Would You Do Differently?
 Describe one thing you'd change if you had more time.
